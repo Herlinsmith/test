@@ -1,0 +1,5 @@
+.env 
+*.db 
+mvola.txt 
+__pycache__/ 
+*.pyc 

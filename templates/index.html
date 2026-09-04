@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Libre Topup - Recharge Free Fire MENA"
+    >
+
+    <meta
+        name="theme-color"
+        content="#070709"
+    >
+
+    <title>Libre Topup - Free Fire MENA</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+
+        <div class="logo">
+            LIBRE TOPUP
+        </div>
+
+        <div class="subtitle">
+            FREE FIRE MENA
+        </div>
+
+        <p class="description">
+            Recharge tes diamants Free Fire
+            rapidement, simplement et en toute sécurité.
+        </p>
+
+    </header>
+
+    <main>
+
+        <section class="card">
+
+            <h2>
+                🎮 Vérifier le joueur
+            </h2>
+
+            <p class="description">
+                Entre ton UID Free Fire pour récupérer
+                automatiquement les informations de ton compte.
+            </p>
+
+            <div class="uid-area">
+
+                <input
+                    type="text"
+                    id="uid"
+                    placeholder="Entre ton UID Free Fire"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    maxlength="20"
+                >
+
+                <button
+                    id="validateBtn"
+                    type="button"
+                >
+                    VÉRIFIER
+                </button>
+
+            </div>
+
+            <div
+                id="validationResult"
+                aria-live="polite"
+            ></div>
+
+        </section>
+
+        <section class="card">
+
+            <div class="products-header">
+
+                <div>
+
+                    <h2>
+                        💎 Choisir une offre
+                    </h2>
+
+                    <p class="description">
+                        Sélectionne les diamants ou l'offre
+                        que tu souhaites acheter.
+                    </p>
+
+                </div>
+
+                <button
+                    id="refreshBtn"
+                    class="refresh"
+                    type="button"
+                >
+                    ↻ Actualiser
+                </button>
+
+            </div>
+
+            <div
+                id="products"
+                class="products"
+            >
+
+                <div class="loading">
+                    Chargement des offres...
+                </div>
+
+            </div>
+
+        </section>
+
+        <section
+            class="card order-card"
+            id="orderCard"
+            style="display: none;"
+        >
+
+            <h2>
+                🛒 Résumé de la commande
+            </h2>
+
+            <p class="description">
+                Vérifie les informations avant de procéder au paiement.
+            </p>
+
+            <div class="summary">
+
+                <div class="summary-row">
+
+                    <span>
+                        UID
+                    </span>
+
+                    <strong id="summaryUid">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="summary-row">
+
+                    <span>
+                        Pseudo
+                    </span>
+
+                    <strong id="summaryPlayer">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="summary-row">
+
+                    <span>
+                        Région
+                    </span>
+
+                    <strong id="summaryRegion">
+                        MENA
+                    </strong>
+
+                </div>
+
+                <div class="summary-row">
+
+                    <span>
+                        Offre
+                    </span>
+
+                    <strong id="summaryProduct">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="summary-row">
+
+                    <span>
+                        Prix fournisseur
+                    </span>
+
+                    <strong id="summaryUsd">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="summary-row">
+
+                    <span>
+                        Prix SHOP2TOPUP
+                    </span>
+
+                    <strong id="summaryBasePrice">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="summary-row">
+
+                    <span>
+                        Frais FiveOne Pay
+                    </span>
+
+                    <strong id="summaryFiveOneFee">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="summary-row total">
+
+                    <span>
+                        À payer
+                    </span>
+
+                    <strong id="summaryPrice">
+                        -
+                    </strong>
+
+                </div>
+
+            </div>
+
+            <div class="payment-section">
+
+                <button
+                    id="topupBtn"
+                    class="topup"
+                    type="button"
+                    disabled
+                >
+                    💳 PAYER AVEC FIVEONE PAY
+                </button>
+
+                <div
+                    id="paymentResult"
+                    aria-live="polite"
+                ></div>
+
+                <p class="warning">
+
+                    🔒 Paiement sécurisé par FiveOne Pay.
+
+                    <br>
+
+                    Après confirmation du paiement,
+                    ta commande sera traitée automatiquement.
+
+                </p>
+
+            </div>
+
+        </section>
+
+        <section
+            class="card status-card"
+            id="statusCard"
+            style="display: none;"
+        >
+
+            <h2>
+                📦 État de la commande
+            </h2>
+
+            <div
+                id="orderStatus"
+                class="order-status"
+                aria-live="polite"
+            >
+                Vérification du paiement...
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+
+        <div>
+            <strong>
+                LIBRE TOPUP
+            </strong>
+        </div>
+
+        <div>
+            Free Fire MENA
+        </div>
+
+        <div>
+            Paiement sécurisé • Traitement automatique
+        </div>
+
+        <div>
+            Powered by SHOP2TOPUP
+        </div>
+
+    </footer>
+
+</div>
+
+<script
+    src="{{ url_for('static', filename='app.js') }}"
+></script>
+
+</body>
+
+</html>
