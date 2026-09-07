@@ -1,17 +1,6 @@
-// ============================================================
-// LIBRE TOPUP
-// Free Fire MENA
-// SHOP2TOPUP + FIVEONE PAY
-// ============================================================
-
 let player = null;
 let selectedProduct = null;
 let currentOrderId = null;
-
-
-// ============================================================
-// UTILITAIRES
-// ============================================================
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -22,20 +11,13 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
-
 function formatMGA(amount) {
     return Number(amount).toLocaleString("fr-FR") + " Ar";
 }
 
-
 function formatUSD(amount) {
     return "$" + Number(amount).toFixed(6);
 }
-
-
-// ============================================================
-// ELEMENTS HTML
-// ============================================================
 
 const uidInput = document.getElementById("uid");
 const validateBtn = document.getElementById("validateBtn");
@@ -51,14 +33,7 @@ const paymentResult = document.getElementById("paymentResult");
 const statusCard = document.getElementById("statusCard");
 const orderStatus = document.getElementById("orderStatus");
 
-
-// Vérification de sécurité
 console.log("LIBRE TOPUP JS chargé.");
-
-
-// ============================================================
-// CHARGER LES PRODUITS SHOP2TOPUP
-// ============================================================
 
 async function loadProducts() {
 
@@ -78,14 +53,11 @@ async function loadProducts() {
             }
         );
 
-
         const data = await response.json();
 
         console.log("Produits SHOP2TOPUP :", data);
 
-
         if (!response.ok || data.success !== true) {
-
             throw new Error(
                 data.error ||
                 data.message ||
@@ -93,9 +65,7 @@ async function loadProducts() {
             );
         }
 
-
         const products = data.products;
-
 
         if (!Array.isArray(products) || products.length === 0) {
 
@@ -108,9 +78,7 @@ async function loadProducts() {
             return;
         }
 
-
         productsContainer.innerHTML = "";
-
 
         products.forEach(product => {
 
@@ -118,33 +86,22 @@ async function loadProducts() {
 
             card.className = "product";
 
-
             const priceUSD = Number(product.price);
 
+            const priceMGA =
+                product.price_mga !== undefined
+                    ? Number(product.price_mga)
+                    : Math.round(priceUSD * 4600);
 
-            /*
-             * Le prix MGA affiché vient du backend.
-             * Si le backend renvoie déjà un prix MGA,
-             * on l'utilise.
-             *
-             * Sinon on convertit avec 4600.
-             */
+            const fiveoneFee =
+                product.fiveone_fee !== undefined
+                    ? Number(product.fiveone_fee)
+                    : 0;
 
-            let priceMGA;
-
-            if (product.price_mga !== undefined) {
-
-                priceMGA =
-                    Number(product.price_mga);
-
-            } else {
-
-                priceMGA =
-                    Math.round(
-                        priceUSD * 4600
-                    );
-            }
-
+            const finalPrice =
+                product.final_price_mga !== undefined
+                    ? Number(product.final_price_mga)
+                    : priceMGA + fiveoneFee;
 
             card.innerHTML = `
 
@@ -153,7 +110,7 @@ async function loadProducts() {
                 </div>
 
                 <div class="product-price">
-                    ${formatMGA(priceMGA)}
+                    ${formatMGA(finalPrice)}
                 </div>
 
                 <div class="product-usd">
@@ -166,57 +123,31 @@ async function loadProducts() {
 
             `;
 
-
-            // =================================================
-            // SELECTION DU PRODUIT
-            // =================================================
-
             card.addEventListener(
                 "click",
                 () => {
 
-                    // Retirer sélection précédente
-
                     document
                         .querySelectorAll(".product")
                         .forEach(element => {
-
-                            element.classList.remove(
-                                "selected"
-                            );
-
+                            element.classList.remove("selected");
                         });
 
+                    card.classList.add("selected");
 
-                    // Sélection actuelle
-
-                    card.classList.add(
-                        "selected"
-                    );
-
-
-                    selectedProduct =
-                        product;
-
+                    selectedProduct = product;
 
                     console.log(
                         "Produit sélectionné :",
                         selectedProduct
                     );
 
-
                     updateSummary();
-
                 }
             );
 
-
-            productsContainer.appendChild(
-                card
-            );
-
+            productsContainer.appendChild(card);
         });
-
 
     } catch (error) {
 
@@ -225,14 +156,11 @@ async function loadProducts() {
             error
         );
 
-
         productsContainer.innerHTML = `
 
             <div class="player-error">
 
-                ❌ ${escapeHtml(
-                    error.message
-                )}
+                ❌ ${escapeHtml(error.message)}
 
             </div>
 
@@ -240,45 +168,29 @@ async function loadProducts() {
     }
 }
 
-
-// ============================================================
-// VALIDATION UID
-// ============================================================
-
 async function validateUID() {
 
-    const uid =
-        uidInput.value.trim();
-
-
-    // --------------------------------------------------------
-    // Vérification locale
-    // --------------------------------------------------------
+    const uid = uidInput.value.trim();
 
     if (!uid) {
 
         validationResult.innerHTML = `
 
             <div class="player-error">
-
                 ❌ Entre ton UID Free Fire.
-
             </div>
 
         `;
 
         return;
     }
-
 
     if (!/^\d{5,20}$/.test(uid)) {
 
         validationResult.innerHTML = `
 
             <div class="player-error">
-
                 ❌ UID Free Fire invalide.
-
             </div>
 
         `;
@@ -286,70 +198,46 @@ async function validateUID() {
         return;
     }
 
-
     validateBtn.disabled = true;
-
-    validateBtn.textContent =
-        "Vérification...";
-
+    validateBtn.textContent = "Vérification...";
 
     validationResult.innerHTML = `
 
         <div class="loading">
-
             Vérification du joueur...
-
         </div>
 
     `;
 
-
     try {
-
-        /*
-         * Si aucun produit n'est encore sélectionné,
-         * on utilise 28 comme produit de validation.
-         */
 
         const productId =
             selectedProduct
                 ? selectedProduct.id
                 : 28;
 
+        const response = await fetch(
+            "/api/validate",
+            {
+                method: "POST",
 
-        const response =
-            await fetch(
-                "/api/validate",
-                {
-                    method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
 
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
+                body: JSON.stringify({
+                    player_id: uid,
+                    product_id: productId
+                })
+            }
+        );
 
-                    body: JSON.stringify({
-
-                        player_id:
-                            uid,
-
-                        product_id:
-                            productId
-
-                    })
-                }
-            );
-
-
-        const data =
-            await response.json();
-
+        const data = await response.json();
 
         console.log(
             "Réponse validation :",
             data
         );
-
 
         if (
             !response.ok ||
@@ -363,16 +251,10 @@ async function validateUID() {
             );
         }
 
-
-        // =====================================================
-        // RECUPERATION DES DONNEES JOUEUR
-        // =====================================================
-
         const playerData =
             data.player ||
             data.data ||
             data;
-
 
         const nickname =
             playerData.nickname ||
@@ -382,43 +264,27 @@ async function validateUID() {
             playerData.username ||
             "Pseudo trouvé";
 
-
         const region =
             playerData.region ||
             playerData.region_name ||
             playerData.server ||
             "MENA";
 
-
         player = {
-
             uid: uid,
-
-            nickname:
-                nickname,
-
-            region:
-                region
-
+            nickname: nickname,
+            region: region
         };
-
-
-        // =====================================================
-        // AFFICHAGE RESULTAT
-        // =====================================================
 
         validationResult.innerHTML = `
 
             <div class="player-success">
 
-                <strong>
-                    ✓ Joueur trouvé
-                </strong>
+                <strong>✓ Joueur trouvé</strong>
 
                 <br><br>
 
                 👤 Pseudo :
-
                 <strong>
                     ${escapeHtml(nickname)}
                 </strong>
@@ -426,22 +292,18 @@ async function validateUID() {
                 <br>
 
                 🆔 UID :
-
                 ${escapeHtml(uid)}
 
                 <br>
 
                 🌍 Région :
-
                 ${escapeHtml(region)}
 
             </div>
 
         `;
 
-
         updateSummary();
-
 
     } catch (error) {
 
@@ -450,41 +312,26 @@ async function validateUID() {
             error
         );
 
-
         player = null;
-
 
         validationResult.innerHTML = `
 
             <div class="player-error">
 
-                ❌ ${escapeHtml(
-                    error.message
-                )}
+                ❌ ${escapeHtml(error.message)}
 
             </div>
 
         `;
 
-
         updateSummary();
-
 
     } finally {
 
-        validateBtn.disabled =
-            false;
-
-        validateBtn.textContent =
-            "Vérifier";
-
+        validateBtn.disabled = false;
+        validateBtn.textContent = "Vérifier";
     }
 }
-
-
-// ============================================================
-// AFFICHER LE RESUME
-// ============================================================
 
 function updateSummary() {
 
@@ -496,174 +343,117 @@ function updateSummary() {
         }
     );
 
+    if (!player || !selectedProduct) {
 
-    /*
-     * Pas encore de joueur :
-     * on cache le résumé.
-     */
-
-    if (!player) {
-
-        orderCard.style.display =
-            "none";
-
-        topupBtn.disabled =
-            true;
+        orderCard.style.display = "none";
+        topupBtn.disabled = true;
 
         return;
     }
 
-
-    /*
-     * Pas encore de produit :
-     * on cache également le résumé.
-     */
-
-    if (!selectedProduct) {
-
-        orderCard.style.display =
-            "none";
-
-        topupBtn.disabled =
-            true;
-
-        return;
-    }
-
-
-    // ========================================================
-    // LES DEUX SONT PRESENTS
-    // ========================================================
-
-    orderCard.style.display =
-        "block";
-
+    orderCard.style.display = "block";
 
     const priceUSD =
-        Number(
-            selectedProduct.price
-        );
+        Number(selectedProduct.price);
 
-
-    let priceMGA;
-
-
-    if (
+    const priceMGA =
         selectedProduct.price_mga !== undefined
-    ) {
+            ? Number(selectedProduct.price_mga)
+            : Math.round(priceUSD * 4600);
 
-        priceMGA =
-            Number(
-                selectedProduct.price_mga
-            );
+    const fiveoneFee =
+        selectedProduct.fiveone_fee !== undefined
+            ? Number(selectedProduct.fiveone_fee)
+            : 0;
 
-    } else {
-
-        priceMGA =
-            Math.round(
-                priceUSD * 4600
-            );
-
-    }
-
-
-    // ========================================================
-    // REMPLIR LE RESUME
-    // ========================================================
+    const finalPrice =
+        selectedProduct.final_price_mga !== undefined
+            ? Number(selectedProduct.final_price_mga)
+            : priceMGA + fiveoneFee;
 
     document.getElementById(
         "summaryUid"
     ).textContent =
         player.uid;
 
-
     document.getElementById(
         "summaryPlayer"
     ).textContent =
         player.nickname;
-
 
     document.getElementById(
         "summaryRegion"
     ).textContent =
         player.region || "MENA";
 
-
     document.getElementById(
         "summaryProduct"
     ).textContent =
         selectedProduct.name;
-
 
     document.getElementById(
         "summaryUsd"
     ).textContent =
         formatUSD(priceUSD);
 
+    document.getElementById(
+        "summaryBasePrice"
+    ).textContent =
+        formatMGA(priceMGA);
+
+    document.getElementById(
+        "summaryFiveOneFee"
+    ).textContent =
+        formatMGA(fiveoneFee);
 
     document.getElementById(
         "summaryPrice"
     ).textContent =
-        formatMGA(priceMGA);
+        formatMGA(finalPrice);
 
-
-    // ========================================================
-    // ACTIVER LE BOUTON PAIEMENT
-    // ========================================================
-
-    topupBtn.disabled =
-        false;
-
-
-    topupBtn.style.display =
-        "block";
-
-
-    topupBtn.textContent =
-        "PAYER AVEC FIVEONE PAY";
-
+    topupBtn.disabled = false;
+    topupBtn.style.display = "block";
+    topupBtn.textContent = "PAYER AVEC FIVEONE PAY";
 
     console.log(
-        "Bouton paiement activé."
+        "Prix fournisseur :",
+        priceMGA
+    );
+
+    console.log(
+        "Frais FiveOne :",
+        fiveoneFee
+    );
+
+    console.log(
+        "Prix final :",
+        finalPrice
     );
 }
 
-
-// ============================================================
-// CREER LE PAIEMENT FIVEONE PAY
-// ============================================================
-
 async function createPayment() {
 
-    console.log(
-        "Création paiement..."
-    );
-
+    console.log("Création paiement...");
 
     if (!player) {
 
         paymentResult.innerHTML = `
 
             <div class="player-error">
-
                 ❌ Vérifie d'abord ton UID.
-
             </div>
 
         `;
 
         return;
     }
-
 
     if (!selectedProduct) {
 
         paymentResult.innerHTML = `
 
             <div class="player-error">
-
                 ❌ Sélectionne une offre.
-
             </div>
 
         `;
@@ -671,61 +461,46 @@ async function createPayment() {
         return;
     }
 
-
-    topupBtn.disabled =
-        true;
-
-
-    topupBtn.textContent =
-        "Création du paiement...";
-
+    topupBtn.disabled = true;
+    topupBtn.textContent = "Création du paiement...";
 
     paymentResult.innerHTML = `
 
         <div class="loading">
-
             Préparation du paiement sécurisé...
-
         </div>
 
     `;
 
-
     try {
 
-        const response =
-            await fetch(
-                "/api/payment",
-                {
-                    method: "POST",
+        const response = await fetch(
+            "/api/payment",
+            {
+                method: "POST",
 
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
+                headers: {
+                    "Content-Type": "application/json"
+                },
 
-                    body: JSON.stringify({
+                body: JSON.stringify({
 
-                        player_id:
-                            player.uid,
+                    player_id:
+                        player.uid,
 
-                        product_id:
-                            selectedProduct.id
+                    product_id:
+                        selectedProduct.id
 
-                    })
-                }
-            );
+                })
+            }
+        );
 
-
-        const data =
-            await response.json();
-
+        const data = await response.json();
 
         console.log(
             "Réponse FiveOne :",
             data
         );
-
 
         if (
             !response.ok ||
@@ -739,24 +514,13 @@ async function createPayment() {
             );
         }
 
-
-        // =====================================================
-        // REFERENCE COMMANDE
-        // =====================================================
-
         currentOrderId =
             data.order_id ||
             data.reference ||
             null;
 
-
-        // =====================================================
-        // URL PAIEMENT
-        // =====================================================
-
         const paymentUrl =
             data.payment_url;
-
 
         if (!paymentUrl) {
 
@@ -764,7 +528,6 @@ async function createPayment() {
                 "FiveOne Pay n'a pas fourni de lien de paiement."
             );
         }
-
 
         paymentResult.innerHTML = `
 
@@ -781,11 +544,6 @@ async function createPayment() {
 
         `;
 
-
-        // =====================================================
-        // REDIRECTION
-        // =====================================================
-
         setTimeout(
             () => {
 
@@ -796,7 +554,6 @@ async function createPayment() {
             500
         );
 
-
     } catch (error) {
 
         console.error(
@@ -804,33 +561,22 @@ async function createPayment() {
             error
         );
 
-
         paymentResult.innerHTML = `
 
             <div class="player-error">
 
-                ❌ ${escapeHtml(
-                    error.message
-                )}
+                ❌ ${escapeHtml(error.message)}
 
             </div>
 
         `;
 
-
-        topupBtn.disabled =
-            false;
-
+        topupBtn.disabled = false;
 
         topupBtn.textContent =
             "PAYER AVEC FIVEONE PAY";
     }
 }
-
-
-// ============================================================
-// VERIFICATION STATUT COMMANDE
-// ============================================================
 
 async function checkOrderStatus(orderId) {
 
@@ -838,45 +584,32 @@ async function checkOrderStatus(orderId) {
         return;
     }
 
-
-    statusCard.style.display =
-        "block";
-
+    statusCard.style.display = "block";
 
     orderStatus.innerHTML = `
 
         <div class="loading">
-
             Vérification du paiement...
-
         </div>
 
     `;
 
-
     try {
 
-        const response =
-            await fetch(
-                `/api/order/${encodeURIComponent(
-                    orderId
-                )}`,
-                {
-                    method: "GET",
-                    cache: "no-store"
-                }
-            );
+        const response = await fetch(
+            `/api/order/${encodeURIComponent(orderId)}`,
+            {
+                method: "GET",
+                cache: "no-store"
+            }
+        );
 
-
-        const data =
-            await response.json();
-
+        const data = await response.json();
 
         console.log(
             "Statut commande :",
             data
         );
-
 
         if (
             !response.ok ||
@@ -890,7 +623,6 @@ async function checkOrderStatus(orderId) {
             );
         }
 
-
         const paymentStatus =
             String(
                 data.payment_status ||
@@ -898,17 +630,11 @@ async function checkOrderStatus(orderId) {
                 ""
             ).toUpperCase();
 
-
         const topupStatus =
             String(
                 data.topup_status ||
                 ""
             ).toUpperCase();
-
-
-        // =====================================================
-        // TOPUP REUSSI
-        // =====================================================
 
         if (
             topupStatus === "SUCCESS" ||
@@ -936,11 +662,6 @@ async function checkOrderStatus(orderId) {
             return;
         }
 
-
-        // =====================================================
-        // TOPUP EN COURS
-        // =====================================================
-
         if (
             topupStatus === "PROCESSING"
         ) {
@@ -962,11 +683,6 @@ async function checkOrderStatus(orderId) {
             return;
         }
 
-
-        // =====================================================
-        // PAIEMENT REUSSI
-        // =====================================================
-
         if (
             paymentStatus === "SUCCESS"
         ) {
@@ -987,11 +703,6 @@ async function checkOrderStatus(orderId) {
 
             return;
         }
-
-
-        // =====================================================
-        // PAIEMENT EN ATTENTE
-        // =====================================================
 
         if (
             paymentStatus === "PENDING"
@@ -1015,11 +726,6 @@ async function checkOrderStatus(orderId) {
             return;
         }
 
-
-        // =====================================================
-        // PAIEMENT EXPIRE
-        // =====================================================
-
         if (
             paymentStatus === "EXPIRED"
         ) {
@@ -1042,11 +748,6 @@ async function checkOrderStatus(orderId) {
             return;
         }
 
-
-        // =====================================================
-        // ERREUR TOPUP
-        // =====================================================
-
         if (
             topupStatus.includes("FAILED")
         ) {
@@ -1066,11 +767,6 @@ async function checkOrderStatus(orderId) {
             return;
         }
 
-
-        // =====================================================
-        // STATUT INCONNU
-        // =====================================================
-
         orderStatus.innerHTML = `
 
             <div class="loading">
@@ -1089,7 +785,6 @@ async function checkOrderStatus(orderId) {
 
         `;
 
-
     } catch (error) {
 
         console.error(
@@ -1097,25 +792,17 @@ async function checkOrderStatus(orderId) {
             error
         );
 
-
         orderStatus.innerHTML = `
 
             <div class="player-error">
 
-                ❌ ${escapeHtml(
-                    error.message
-                )}
+                ❌ ${escapeHtml(error.message)}
 
             </div>
 
         `;
     }
 }
-
-
-// ============================================================
-// RETOUR FIVEONE PAY
-// ============================================================
 
 function checkPaymentReturn() {
 
@@ -1124,31 +811,21 @@ function checkPaymentReturn() {
             window.location.search
         );
 
-
     const payment =
         params.get("payment");
 
-
     const orderId =
         params.get("order_id");
-
-
-    /*
-     * Aucun retour de paiement.
-     */
 
     if (!orderId) {
         return;
     }
 
-
     currentOrderId =
         orderId;
 
-
     statusCard.style.display =
         "block";
-
 
     if (
         payment === "success"
@@ -1181,20 +858,10 @@ function checkPaymentReturn() {
         `;
     }
 
-
-    checkOrderStatus(
-        orderId
-    );
-
-
-    // ========================================================
-    // POLLING
-    // ========================================================
+    checkOrderStatus(orderId);
 
     let attempts = 0;
-
     const maxAttempts = 20;
-
 
     const interval =
         setInterval(
@@ -1202,11 +869,9 @@ function checkPaymentReturn() {
 
                 attempts++;
 
-
                 await checkOrderStatus(
                     orderId
                 );
-
 
                 if (
                     attempts >= maxAttempts
@@ -1223,28 +888,20 @@ function checkPaymentReturn() {
         );
 }
 
-
-// ============================================================
-// EVENEMENTS
-// ============================================================
-
 validateBtn.addEventListener(
     "click",
     validateUID
 );
-
 
 refreshBtn.addEventListener(
     "click",
     loadProducts
 );
 
-
 topupBtn.addEventListener(
     "click",
     createPayment
 );
-
 
 uidInput.addEventListener(
     "keydown",
@@ -1260,11 +917,6 @@ uidInput.addEventListener(
 
     }
 );
-
-
-// ============================================================
-// INITIALISATION
-// ============================================================
 
 document.addEventListener(
     "DOMContentLoaded",
